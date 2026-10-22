@@ -1,0 +1,8 @@
+node_modules/
+android/
+*.jks
+*.keystore
+.DS_Store
+windows/node_modules/
+windows/dist/
+windows/app/
