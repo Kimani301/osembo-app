@@ -9,6 +9,8 @@ osembo-app/
 ├── package.json                   ← lists the Capacitor tools
 ├── capacitor.config.json          ← app name (Osembo) and app id (com.osembo.school)
 ├── .github/workflows/build-apk.yml← the robot that builds the APK
+├── windows/                       ← Windows app wrapper (Electron): main.js and package.json
+├── .github/workflows/build-windows.yml← builds Osembo-Setup.exe for Windows
 ├── .github/workflows/publish-site.yml← puts the APK on a public download page
 ├── site/index.html                ← the download page design
 └── README.md                      ← this guide
@@ -100,6 +102,15 @@ The workflow `publish-site.yml` builds a simple download page and puts the lates
 3. When it finishes, the link appears in the run (and under Settings → Pages). It looks like `https://YOUR-USERNAME.github.io/osembo-app/`. Share that link with teachers and parents.
 
 **Important:** GitHub Pages only works from a **public** repository on a free account (private repos need a paid plan). A public repo means anyone can read your source code. Do not put real student data, passwords or secrets in the files. Your signing key stays safe because it lives in GitHub Secrets, not in the files.
+
+## Part 10: Windows version
+
+`build-windows.yml` builds `Osembo-Setup.exe` (an installer for Windows 10/11) from the same `www/index.html`, so Android and Windows always match. After it finishes, `publish-site.yml` adds a **Download for Windows** button to your page automatically.
+
+- Run it once by hand: **Actions → Build Osembo for Windows → Run workflow**.
+- Windows may show "Windows protected your PC" because the installer is not code-signed: click **More info → Run anyway**. Removing this warning needs a paid code-signing certificate.
+- Data is saved on that computer. Windows PCs have their own data, so use the sync files between devices, and take backups.
+- Printing works on Windows (the print window opens normally).
 
 ## Known limits
 
