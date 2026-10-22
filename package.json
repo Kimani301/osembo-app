@@ -1,0 +1,15 @@
+{
+  "name": "osembo-school-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Osembo School System Android app (Capacitor wrapper around www/index.html)",
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/filesystem": "^6.0.2",
+    "@capacitor/share": "^6.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}
