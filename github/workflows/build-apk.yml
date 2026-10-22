@@ -1,0 +1,77 @@
+name: Build Osembo APK
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      # true only when you have added the 4 signing secrets (see README, Part 3)
+      HAS_KEY: ${{ secrets.KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create the Android project
+        run: |
+          npx cap add android
+          # every build gets a higher version number so phones accept it as an update
+          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
+          npx cap sync android
+          chmod +x android/gradlew
+
+      - name: Build APK (unsigned release if you have a key, otherwise debug)
+        working-directory: android
+        run: |
+          if [ "$HAS_KEY" = "true" ]; then ./gradlew assembleRelease --no-daemon
+          else ./gradlew assembleDebug --no-daemon; fi
+
+      - name: Sign the release APK
+        if: env.HAS_KEY == 'true'
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.jks
+          BT=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+          IN=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          "$ANDROID_HOME/build-tools/$BT/zipalign" -p 4 "$IN" aligned.apk
+          "$ANDROID_HOME/build-tools/$BT/apksigner" sign \
+            --ks release.jks --ks-key-alias "${{ secrets.KEY_ALIAS }}" \
+            --ks-pass "pass:${{ secrets.KEYSTORE_PASSWORD }}" \
+            --key-pass "pass:${{ secrets.KEY_PASSWORD }}" \
+            --out Osembo.apk aligned.apk
+          rm -f release.jks
+
+      - name: Collect the APK
+        run: |
+          if [ "$HAS_KEY" = "true" ]; then mv Osembo.apk Osembo-signed.apk
+          else cp android/app/build/outputs/apk/debug/app-debug.apk Osembo-debug.apk; fi
+          ls -la *.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Osembo-APK
+          path: "*.apk"
+
+      - name: Attach to a GitHub Release (only when you push a tag like v1.0)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.apk"

@@ -9,6 +9,8 @@ osembo-app/
 ├── package.json                   ← lists the Capacitor tools
 ├── capacitor.config.json          ← app name (Osembo) and app id (com.osembo.school)
 ├── .github/workflows/build-apk.yml← the robot that builds the APK
+├── .github/workflows/publish-site.yml← puts the APK on a public download page
+├── site/index.html                ← the download page design
 └── README.md                      ← this guide
 ```
 
@@ -88,6 +90,16 @@ Tag a version (GitHub → Releases → Draft a new release → tag `v1.0`). The 
 - [ ] Generate the remedial timetable for a week and mark a lesson missed.
 - [ ] Sync from the admin phone to a teacher phone.
 - [ ] Owner console (tap the "Osembo" title 5 times) → reset admin password asks for the PIN.
+
+## Part 9: Public download page (so anyone can download the APK)
+
+The workflow `publish-site.yml` builds a simple download page and puts the latest APK on it. After each successful APK build it updates the page by itself.
+
+1. In your repo go to **Settings → Pages**. Under **Source** choose **GitHub Actions**.
+2. Open **Actions → Publish Osembo download page → Run workflow** (after your first APK build is green).
+3. When it finishes, the link appears in the run (and under Settings → Pages). It looks like `https://YOUR-USERNAME.github.io/osembo-app/`. Share that link with teachers and parents.
+
+**Important:** GitHub Pages only works from a **public** repository on a free account (private repos need a paid plan). A public repo means anyone can read your source code. Do not put real student data, passwords or secrets in the files. Your signing key stays safe because it lives in GitHub Secrets, not in the files.
 
 ## Known limits
 

@@ -1,0 +1,67 @@
+name: Publish Osembo download page
+
+# Runs by itself after "Build Osembo APK" finishes successfully,
+# or by hand: Actions -> Publish Osembo download page -> Run workflow.
+on:
+  workflow_run:
+    workflows: ["Build Osembo APK"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find the latest successful APK build
+        id: run
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            ID="${{ github.event.workflow_run.id }}"
+          else
+            ID=$(gh run list --repo "${{ github.repository }}" --workflow build-apk.yml --status success --limit 1 --json databaseId -q '.[0].databaseId')
+          fi
+          if [ -z "$ID" ] || [ "$ID" = "null" ]; then echo "No successful APK build found yet. Run Build Osembo APK first."; exit 1; fi
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+
+      - name: Download the APK from that build
+        run: gh run download "${{ steps.run.outputs.id }}" --repo "${{ github.repository }}" -n Osembo-APK -D apk
+
+      - name: Build the download site
+        run: |
+          mkdir -p _site
+          cp -r site/* _site/
+          APK=$(ls apk/*.apk | head -1)
+          cp "$APK" _site/Osembo.apk
+          SIZE=$(du -h _site/Osembo.apk | cut -f1)
+          DATE=$(date -u +"%d %b %Y")
+          sed -i "s/__VERSION__/1.0.${{ steps.run.outputs.id }}/; s/__DATE__/$DATE/; s/__SIZE__/$SIZE/" _site/index.html
+          touch _site/.nojekyll
+          ls -la _site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
